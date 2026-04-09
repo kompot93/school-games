@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🎒 Падежная Арена: 3 Класс</title>
+<style>
+:root {
+  --bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --panel: rgba(255, 255, 255, 0.96);
+  --primary: #4361ee; --success: #2ecc71; --danger: #e74c3c; --warning: #f1c40f;
+  --text: #2c3e50; --shadow: 0 12px 35px rgba(0,0,0,0.15);
+}
+* { box-sizing: border-box; user-select: none; }
+body {
+  font-family: 'Nunito', 'Segoe UI', sans-serif;
+  background: var(--bg); margin: 0; height: 100vh; display: flex;
+  color: var(--text); overflow: hidden;
+}
+/* Toast */
+#toast-container { position: fixed; top: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; pointer-events: none; }
+.toast {
+  padding: 14px 24px; border-radius: 14px; color: white; font-weight: 800; font-size: 15px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.25); animation: slideIn 0.4s forwards; transform: translateX(120%);
+}
+.toast.ok { background: var(--success); } .toast.err { background: var(--danger); }
+@keyframes slideIn { to { transform: translateX(0); } }
+@keyframes pop { 0% { transform: scale(0.8); opacity: 0; } 50% { transform: scale(1.1); } 100% { transform: scale(1); opacity: 1; } }
+@keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
+
+/* Sidebar */
+.sidebar {
+  width: 290px; background: var(--panel); padding: 20px; display: flex; flex-direction: column;
+  border-right: 1px solid rgba(255,255,255,0.3); box-shadow: 5px 0 20px rgba(0,0,0,0.1); z-index: 10;
+}
+.sidebar h2 { text-align: center; margin: 0 0 15px; color: var(--primary); font-size: 20px; }
+.student-list { flex: 1; overflow-y: auto; padding-right: 5px; }
+.student-card {
+  display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; margin-bottom: 8px;
+  background: white; border-radius: 14px; cursor: pointer; transition: 0.2s; box-shadow: 0 2px 8px rgba(0,0,0,0.05); border: 2px solid transparent;
+}
+.student-card.active { background: #e3f2fd; border-color: var(--primary); transform: scale(1.03); }
+.student-name { font-weight: 800; font-size: 15px; }
+.score-ctrl { display: flex; align-items: center; gap: 6px; }
+.mini-btn { width: 28px; height: 28px; border: none; border-radius: 8px; background: #f0f2f5; font-weight: bold; cursor: pointer; transition: 0.2s; font-size: 16px; }
+.mini-btn:hover { background: #d1d5db; transform: scale(1.1); }
+.score-val { min-width: 24px; text-align: center; font-weight: 800; font-size: 16px; transition: 0.3s; }
+.score-val.pop { animation: pop 0.4s ease; background: #e8f5e9; border-radius: 6px; }
+.btn-finish { margin-top: 15px; width: 100%; padding: 14px; border: none; border-radius: 14px; background: var(--danger); color: white; font-weight: 800; font-size: 16px; cursor: pointer; transition: 0.2s; }
+.btn-finish:hover { filter: brightness(1.1); transform: translateY(-2px); }
+
+/* Main */
+.main { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 25px; }
+.game-card {
+  background: var(--panel); width: 100%; max-width: 860px; border-radius: 32px; padding: 35px;
+  box-shadow: var(--shadow); text-align: center; border: 1px solid rgba(255,255,255,0.5);
+}
+.task-title { font-size: 26px; font-weight: 800; margin-bottom: 25px; min-height: 65px; line-height: 1.4; color: #1e293b; }
+#options-zone { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; margin-top: 10px; }
+
+/* Buttons */
+.btn {
+  padding: 16px; border: none; border-radius: 16px; font-size: 15px; font-weight: 800;
+  cursor: pointer; color: white; box-shadow: 0 4px 0 rgba(0,0,0,0.12); pointer-events: auto; z-index: 10; position: relative;
+}
+.btn-blue { background: var(--primary); } .btn-green { background: var(--success); }
+.btn-red { background: var(--danger); } .btn-yellow { background: var(--warning); color: #333; }
+.btn:hover { filter: brightness(1.08); } .btn:active { transform: translateY(3px); box-shadow: 0 1px 0 rgba(0,0,0,0.12); }
+
+/* Timer */
+#timer-zone { display: none; background: #1e293b; color: #00ff00; padding: 12px 20px; border-radius: 14px; margin-bottom: 15px; font-family: 'Courier New', monospace; font-size: 32px; font-weight: bold; }
+.timer-controls { display: flex; justify-content: center; gap: 10px; margin-top: 8px; }
+.timer-btn { padding: 8px 16px; border: none; border-radius: 8px; font-weight: 800; cursor: pointer; color: white; font-size: 14px; transition: 0.2s; }
+.timer-btn:hover { filter: brightness(1.1); }
+
+/* Text */
+.text-flow { font-size: 21px; line-height: 1.9; background: #f8fafc; padding: 22px; border-radius: 18px; border: 2px dashed #cbd5e1; text-align: left; display: inline-block; width: 100%; }
+.word-wrap { display: inline-flex; flex-direction: column; align-items: center; margin: 0 8px; vertical-align: baseline; position: relative; }
+.target-word { font-weight: 800; color: #1e293b; text-decoration: underline wavy var(--primary); text-underline-offset: 4px; cursor: pointer; padding: 2px 4px; border-radius: 6px; }
+.target-word:hover { background: #eef2ff; }
+.case-dropdown {
+  display: none; position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%);
+  background: white; padding: 8px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+  z-index: 100; border: 2px solid var(--primary); flex-wrap: wrap; gap: 5px; justify-content: center;
+  animation: pop 0.3s ease forwards;
+}
+.case-dropdown.show { display: flex; }
+.pill {
+  padding: 6px 10px; border: 1px solid #cbd5e1; border-radius: 8px; background: white;
+  font-size: 12px; font-weight: 800; cursor: pointer; transition: 0.2s; min-width: 40px; text-align: center;
+}
+.pill:hover { background: var(--primary); color: white; border-color: var(--primary); }
+.pill.correct { background: var(--success); color: white; border-color: var(--success); pointer-events: none; animation: pop 0.3s ease; }
+.pill.wrong { background: var(--danger); color: white; pointer-events: none; animation: shake 0.4s ease; }
+.solved-word {
+  display: inline-flex; flex-direction: column; align-items: center; margin: 0 4px;
+  background: #d1fae5; color: #065f46; padding: 4px 10px; border-radius: 10px;
+  font-weight: 800; border: 2px solid #10b981; animation: pop 0.4s ease;
+}
+.solved-word span { font-size: 11px; font-weight: 700; color: #047857; }
+
+/* Bottom & Overlay */
+.bottom-controls { display: flex; gap: 12px; margin-top: 25px; flex-wrap: wrap; justify-content: center; }
+.bottom-btn { width: 180px; padding: 16px; font-size: 17px; border-radius: 20px; }
+#overlay { display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.95); z-index: 2000; color: white; flex-direction: column; align-items: center; justify-content: center; }
+#overlay h1 { font-size: 44px; margin-bottom: 15px; color: var(--warning); text-shadow: 0 0 20px rgba(241,196,15,0.4); }
+.rank-list { font-size: 24px; text-align: left; max-height: 60vh; overflow-y: auto; width: 420px; }
+.rank-item { padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.15); display: flex; justify-content: space-between; }
+.rank-item span:last-child { font-weight: 800; color: var(--success); }
+.btn-new { margin-top: 25px; padding: 14px 28px; font-size: 18px; border-radius: 16px; background: var(--primary); color: white; border: none; cursor: pointer; font-weight: 800; transition: 0.2s; }
+.btn-new:hover { transform: scale(1.05); }
+::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+</style>
+</head>
+<body>
+
+<div id="toast-container"></div>
+
+<aside class="sidebar">
+  <h2>👨‍🏫 Класс</h2>
+  <div class="student-list" id="student-list"></div>
+  <button class="btn-finish" onclick="finishGame()">🏁 ЗАВЕРШИТЬ УРОК</button>
+</aside>
+
+<main class="main">
+  <div class="game-card">
+    <div id="timer-zone">
+      <span id="timer">00:00.00</span>
+      <div class="timer-controls">
+        <button class="timer-btn" style="background:var(--success)" onclick="startT()">▶️ Старт</button>
+        <button class="timer-btn" style="background:var(--danger)" onclick="stopT()">⏹️ Стоп</button>
+        <button class="timer-btn" style="background:#64748b" onclick="resetT()">🔄 Сброс</button>
+      </div>
+    </div>
+    <div class="task-title" id="task-display">Выберите ученика и нажмите кнопку задания!</div>
+    <div id="options-zone"></div>
+  </div>
+  
+  <div class="bottom-controls">
+    <button class="btn btn-blue bottom-btn" onclick="loadTask('truth')">❓ ПРАВДА</button>
+    <button class="btn btn-green bottom-btn" onclick="loadTask('dare')">🏃 ДЕЙСТВИЕ</button>
+    <button class="btn btn-yellow bottom-btn" onclick="loadTask('text')">📖 ТЕКСТ</button>
+  </div>
+</main>
+
+<div id="overlay">
+  <h1>👑 ИТОГИ УРОКА 👑</h1>
+  <div class="rank-list" id="rank-list"></div>
+  <button class="btn-new" onclick="location.reload()">🔄 НОВАЯ ИГРА</button>
+</div>
+
+<script>
+const NAMES = ["Вера", "Егор", "Вадим", "Бронислав", "Александр", "Лев", "Виктория", "Тимур", "Марк", "Никита", "Мария", "Артемий"];
+let students = NAMES.map(n => ({ name: n, score: 0 }));
+let currentIdx = null, timerInt = null, centis = 0;
+const CASES = ["Именительный", "Родительный", "Дательный", "Винительный", "Творительный", "Предложный"];
+const SHORT = ["ИМ", "РОД", "ДАТ", "ВИН", "ТВОР", "ПРЕД"];
+
+// === ДАННЫЕ (РОВНО ПО 25) ===
+const TRUTHS = [
+  {q:"На какие вопросы отвечает Дательный падеж?", a:"Дательный"}, {q:"Вопросы 'Кого? Чего?' — это...", a:"Родительный"},
+  {q:"Слово-помощник 'Вижу' указывает на...", a:"Винительный"}, {q:"Вопросы 'Кем? Чем?' — это...", a:"Творительный"},
+  {q:"Вопросы 'О ком? О чём?' — это...", a:"Предложный"}, {q:"Вопросы 'Кто? Что?' — это...", a:"Именительный"},
+  {q:"Предлоги К, ПО используются только с...", a:"Дательный"}, {q:"Предлоги О, ОБ, ПРИ характерны для...", a:"Предложный"},
+  {q:"Какой падеж НИКОГДА не имеет предлогов?", a:"Именительный"}, {q:"В каком падеже всегда стоит подлежащее?", a:"Именительный"},
+  {q:"Нет (кого?) брата — это...", a:"Родительный"}, {q:"Рад (кому?) другу — это...", a:"Дательный"},
+  {q:"Вижу (что?) дом — это...", a:"Винительный"}, {q:"Горжусь (кем?) папой — это...", a:"Творительный"},
+  {q:"Думаю (о чём?) о школе — это...", a:"Предложный"}, {q:"Падеж слова 'маме' в 'Я звоню маме'", a:"Дательный"},
+  {q:"Падеж слова 'книгу' в 'Читаю книгу'", a:"Винительный"}, {q:"Предлоги С, НАД, ПОД, ЗА относятся к...", a:"Творительный"},
+  {q:"Предлоги ИЗ, ОТ, У, БЕЗ — это...", a:"Родительный"}, {q:"Окончания '-ом, -ем, -ью' чаще у...", a:"Творительный"},
+  {q:"В каком падеже стоит 'на поле'?", a:"Предложный"}, {q:"В каком падеже стоит 'к реке'?", a:"Дательный"},
+  {q:"Вопросы 'Кого? Что?' принадлежат...", a:"Винительный"}, {q:"Предлог 'через' требует падеж...", a:"Винительный"},
+  {q:"Начальная форма существительного — это...", a:"Именительный"}
+];
+
+const DARES = [
+  {t:"Просклоняй слово 'ЗИМА' за 15 секунд", timer:true}, {t:"Назови все 6 падежей по порядку", timer:false},
+  {t:"Придумай 3 слова в Дательном падеже", timer:true}, {t:"Просклоняй 'УЧЕНИК' за 15 секунд", timer:true},
+  {t:"Назови 3 предлога Родительного падежа", timer:true}, {t:"Предложение со словом 'КОТ' в Творительном", timer:false},
+  {t:"Назови падежи в обратном порядке", timer:true}, {t:"Поставь своё имя в Родительный и Дательный", timer:false},
+  {t:"Найди в классе предмет в Предложном падеже", timer:false}, {t:"3 слова, где И.п. и В.п. одинаковы", timer:true},
+  {t:"Быстро назови вопросы всех падежей за 10 сек", timer:true}, {t:"Просклоняй слово 'СОЛНЦЕ'", timer:true},
+  {t:"Поставь 'ДРУГ' в 3 разных падежа", timer:false}, {t:"Назови все предлоги Творительного", timer:true},
+  {t:"Придумай предложение с Винительным падежом", timer:false}, {t:"Просклоняй слово 'ШКОЛА'", timer:true},
+  {t:"Назови вопросы Родительного 3 раза подряд", timer:true}, {t:"Предложение: Дательный + Творительный", timer:false},
+  {t:"Найди ошибку: 'Я дам книгу сестрой'", timer:false}, {t:"3 неодушевлённых в Родительном", timer:true},
+  {t:"Объясни своими словами 'Дательный падеж'", timer:false}, {t:"Просклоняй слово 'ЛЕС'", timer:true},
+  {t:"Назови 3 предлога Предложного падежа", timer:true}, {t:"Предложение с 3-мя разными падежами", timer:false},
+  {t:"Блиц: вопросы Винительного падежа!", timer:true}
+];
+
+const TEXTS = [
+  {t:"Птицы летят на юг.", words:[{w:"Птицы",c:"Именительный"},{w:"юг",c:"Винительный"}]},
+  {t:"Мальчик ест яблоко.", words:[{w:"Мальчик",c:"Именительный"},{w:"яблоко",c:"Винительный"}]},
+  {t:"В лесу поют птицы.", words:[{w:"лесу",c:"Предложный"},{w:"птицы",c:"Именительный"}]},
+  {t:"Мама купила хлеба.", words:[{w:"Мама",c:"Именительный"},{w:"хлеба",c:"Родительный"}]},
+  {t:"Кот спит на диване.", words:[{w:"Кот",c:"Именительный"},{w:"диване",c:"Предложный"}]},
+  {t:"Брат пишет письмо другу.", words:[{w:"письмо",c:"Винительный"},{w:"другу",c:"Дательный"}]},
+  {t:"Мы гордимся страной.", words:[{w:"страной",c:"Творительный"}]},
+  {t:"Ученик открыл книгу.", words:[{w:"Ученик",c:"Именительный"},{w:"книгу",c:"Винительный"}]},
+  {t:"На столе лежит ручка.", words:[{w:"столе",c:"Предложный"},{w:"ручка",c:"Именительный"}]},
+  {t:"Папа пришёл с работы.", words:[{w:"Папа",c:"Именительный"},{w:"работы",c:"Родительный"}]},
+  {t:"Сестра гуляет с собакой.", words:[{w:"собакой",c:"Творительный"}]},
+  {t:"В небе светит солнце.", words:[{w:"небе",c:"Предложный"},{w:"солнце",c:"Именительный"}]},
+  {t:"Дети бегут к реке.", words:[{w:"Дети",c:"Именительный"},{w:"реке",c:"Дательный"}]},
+  {t:"Ветка берёзы согнулась.", words:[{w:"берёзы",c:"Родительный"}]},
+  {t:"Я рисую красками.", words:[{w:"красками",c:"Творительный"}]},
+  {t:"Оля мечтает о лете.", words:[{w:"лете",c:"Предложный"}]},
+  {t:"За окном идёт дождь.", words:[{w:"окном",c:"Творительный"},{w:"дождь",c:"Именительный"}]},
+  {t:"Учитель вошёл в класс.", words:[{w:"Учитель",c:"Именительный"},{w:"класс",c:"Винительный"}]},
+  {t:"Листья падают с дуба.", words:[{w:"дуба",c:"Родительный"}]},
+  {t:"Мы пьём чай с мёдом.", words:[{w:"мёдом",c:"Творительный"}]},
+  {t:"Белка живёт в дупле.", words:[{w:"дупле",c:"Предложный"}]},
+  {t:"Дай игрушку брату.", words:[{w:"игрушку",c:"Винительный"},{w:"брату",c:"Дательный"}]},
+  {t:"Ветер качает траву.", words:[{w:"Ветер",c:"Именительный"},{w:"траву",c:"Винительный"}]},
+  {t:"На арене выступал цирк.", words:[{w:"арене",c:"Предложный"}]},
+  {t:"Книга лежит у окна.", words:[{w:"окна",c:"Родительный"}]}
+];
+
+// === ЛОГИКА ===
+function showToast(msg, type) {
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
+  t.innerText = msg;
+  document.getElementById('toast-container').appendChild(t);
+  setTimeout(() => t.remove(), 2200);
+}
+
+function renderStudents() {
+  const list = document.getElementById('student-list');
+  list.innerHTML = '';
+  students.forEach((s, i) => {
+    list.innerHTML += `
+      <div class="student-card ${currentIdx === i ? 'active' : ''}" onclick="selectStudent(${i})">
+        <span class="student-name">${s.name}</span>
+        <div class="score-ctrl">
+          <button type="button" class="mini-btn" onclick="adjustScore(${i},-1,event)">−</button>
+          <span class="score-val" id="score-${i}">${s.score}</span>
+          <button type="button" class="mini-btn" onclick="adjustScore(${i},1,event)">+</button>
+        </div>
+      </div>`;
+  });
+}
+
+function selectStudent(i) { currentIdx = i; renderStudents(); }
+function adjustScore(i, val, e) { 
+  e?.stopPropagation(); 
+  students[i].score += val; 
+  renderStudents();
+  const el = document.getElementById(`score-${i}`);
+  if(el) { el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); }
+}
+
+function resetBoard() {
+  document.getElementById('task-display').innerHTML = 'Выберите ученика и нажмите кнопку задания!';
+  document.getElementById('options-zone').innerHTML = '';
+  document.getElementById('timer-zone').style.display = 'none';
+  stopT(); centis = 0; updateTimer();
+}
+
+function loadTask(mode) {
+  if (currentIdx === null) { showToast("⚠️ Сначала выбери ученика слева!", "err"); return; }
+  
+  const display = document.getElementById('task-display');
+  const options = document.getElementById('options-zone');
+  const timerUI = document.getElementById('timer-zone');
+  
+  display.innerHTML = ''; options.innerHTML = '';
+  timerUI.style.display = 'none';
+  stopT(); centis = 0; updateTimer();
+
+  if (mode === 'truth') {
+    const item = TRUTHS[Math.floor(Math.random() * TRUTHS.length)];
+    display.innerText = item.q;
+    CASES.forEach(c => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'btn btn-blue';
+      btn.textContent = c;
+      btn.addEventListener('click', () => {
+        if (c === item.a) { adjustScore(currentIdx, 10); showToast("✅ Верно! +10", "ok"); }
+        else { adjustScore(currentIdx, -5); showToast(`❌ Ошибка! Это ${item.a}. -5`, "err"); }
+        resetBoard();
+      });
+      options.appendChild(btn);
+    });
+  } 
+  else if (mode === 'dare') {
+    const item = DARES[Math.floor(Math.random() * DARES.length)];
+    timerUI.style.display = item.timer ? 'block' : 'none'; // ТОЛЬКО если timer: true
+    
+    display.innerText = item.t;
+    const grades = [
+      {n:"🌟 ОТЛИЧНО (+15)", v:15, c:'btn-green'}, 
+      {n:"👍 ХОРОШО (+10)", v:10, c:'btn-blue'}, 
+      {n:"📉 МОЖНО ЛУЧШЕ (-5)", v:-5, c:'btn-red'}
+    ];
+    grades.forEach(opt => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = `btn ${opt.c}`;
+      btn.textContent = opt.n;
+      btn.addEventListener('click', () => {
+        adjustScore(currentIdx, opt.v);
+        showToast(`Оценка: ${opt.v > 0 ? '+' : ''}${opt.v}`, "ok");
+        resetBoard();
+      });
+      options.appendChild(btn);
+    });
+  } 
+  else if (mode === 'text') {
+    const sample = TEXTS[Math.floor(Math.random() * TEXTS.length)];
+    let html = '<div class="text-flow">';
+    sample.t.split(' ').forEach(w => {
+      const clean = w.replace(/[.,;:!?]/g, '');
+      const target = sample.words.find(sw => sw.w === clean);
+      if (target) {
+        html += `<span class="word-wrap"><span class="target-word">${w}</span>
+          <div class="case-dropdown">
+            ${CASES.map((c, i) => `<button type="button" class="pill" data-case="${c}" data-correct="${target.c}">${SHORT[i]}</button>`).join('')}
+          </div></span> `;
+      } else html += w + ' ';
+    });
+    display.innerHTML = html + '</div>';
+    
+    // Привязка событий
+    display.querySelectorAll('.target-word').forEach(el => {
+      el.addEventListener('click', (e) => {
+        e.stopPropagation();
+        document.querySelectorAll('.case-dropdown').forEach(d => d.classList.remove('show'));
+        el.nextElementSibling?.classList.toggle('show');
+      });
+    });
+    display.querySelectorAll('.pill').forEach(pill => {
+      pill.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const chosen = e.target.dataset.case;
+        const correct = e.target.dataset.correct;
+        const wrapper = e.target.closest('.word-wrap');
+        
+        if (chosen === correct) {
+          e.target.parentElement.classList.add('solved');
+          wrapper.innerHTML = `<div class="solved-word">${wrapper.querySelector('.target-word').textContent}<span>${correct}</span></div>`;
+          adjustScore(currentIdx, 5); showToast("✅ Правильный падеж! +5", "ok");
+        } else {
+          e.target.classList.add('wrong');
+          adjustScore(currentIdx, -2); showToast("❌ Неверно! -2", "err");
+        }
+      });
+    });
+    document.addEventListener('click', () => document.querySelectorAll('.case-dropdown').forEach(d => d.classList.remove('show')), { once: true });
+  }
+}
+
+// Таймер
+function startT() { if (!timerInt) timerInt = setInterval(() => { centis += 1; updateTimer(); }, 10); }
+function stopT() { clearInterval(timerInt); timerInt = null; }
+function resetT() { stopT(); centis = 0; updateTimer(); }
+function updateTimer() {
+  const s = Math.floor(centis / 100), h = centis % 100;
+  document.getElementById('timer').innerText = `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}.${String(h).padStart(2,'0')}`;
+}
+
+function finishGame() {
+  document.getElementById('overlay').style.display = 'flex';
+  const sorted = [...students].sort((a,b) => b.score - a.score);
+  document.getElementById('rank-list').innerHTML = sorted.map((s,i) => `<div class="rank-item"><span>${i+1}. ${s.name}</span><span>${s.score} бал.</span></div>`).join('');
+}
+
+// Init
+renderStudents();
+</script>
+</body>
+</html>
